@@ -323,13 +323,17 @@ impl NlSocket {
         T: Nl + NlType,
         P: Nl,
     {
+        let mut mem = [0; MAX_NL_LENGTH];
+        let mem_read = self.recv(&mut mem[..], 0)?;
+        if mem_read == 0 {
+            return Err(NlError::new("No data could be read from the socket"));
+        }
+        let mut buffer = StreamReadBuffer::new(&mem[..mem_read as usize]);
+        let msg = Nlmsghdr::deserialize(&mut buffer)?;
+        /*
+        mem.truncate(mem_read as usize);
         if self.buffer.is_none() {
             let mut mem = vec![0; buf_sz.unwrap_or(MAX_NL_LENGTH)];
-            let mem_read = self.recv(&mut mem, 0)?;
-            if mem_read == 0 {
-                return Err(NlError::new("No data could be read from the socket"));
-            }
-            mem.truncate(mem_read as usize);
             self.buffer = Some(StreamReadBuffer::new(mem));
         }
         let msg = match self.buffer {
@@ -347,6 +351,7 @@ impl NlSocket {
         if let Some(true) = self.buffer.as_ref().map(|b| b.at_end()) {
             self.buffer = None;
         }
+        */
         Ok(msg)
     }
 
