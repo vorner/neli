@@ -70,7 +70,9 @@ where
 
     fn next(&mut self) -> Option<Result<Nlmsghdr<T, P>, NlError>> {
         match self.socket_ref.recv_nl(None) {
-            Ok(rn) => Some(Ok(rn)),
+            Ok(rn) => {
+                Some(Ok(rn))
+            },
             Err(e) => Some(Err(e)),
         }
     }

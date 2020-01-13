@@ -80,14 +80,15 @@ where
         let mut vec = Vec::new();
         let mut size_hint = mem.take_size_hint();
         while size_hint > Some(0) || (size_hint == None && !mem.at_end()) {
+            if let Some(hint) = size_hint {
+                mem.set_size_hint(hint);
+            }
             let next = Nlattr::<T, P>::deserialize(mem)?;
             if let Some(val) = size_hint {
-                if val > 0 {
-                    let result = val.checked_sub(next.asize()).ok_or_else(|| {
-                        DeError::new("Deserialization read passed the end of the specified buffer")
-                    })?;
-                    size_hint = Some(result);
-                }
+                // Note: asize exceeding the rest of the buffer is OK in case it's only the
+                // padding. Padding is needed between elements, but the last one doesn't need
+                // to have it. In such case we simply assume everything got used up.
+                size_hint = Some(val.saturating_sub(next.asize()));
             }
             vec.push(next);
         }
@@ -253,7 +254,7 @@ where
     {
         let nla_len = u16::deserialize(mem)?;
         let nla_type = T::deserialize(mem)?;
-        mem.set_size_hint(nla_len as usize - (nla_len.size() + nla_type.size()));
+        mem.set_size_hint((nla_len as usize).saturating_sub(nla_len.size() + nla_type.size()));
         let payload = P::deserialize(mem)?;
         let nla = Nlattr {
             nla_len,

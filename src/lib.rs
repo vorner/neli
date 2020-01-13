@@ -127,8 +127,11 @@ pub trait Nl: Sized {
         T: AsRef<[u8]>,
     {
         let padding_len = self.asize() - self.size();
+
         if padding_len > 0 {
-            m.read_exact(&mut [0; libc::NLA_ALIGNTO as usize][..padding_len])?;
+            // Note: sometimes, we get a shorter buffer from the kernel than the padding would
+            // suggest. That's OK.
+            let _ = m.read_exact(&mut [0; libc::NLA_ALIGNTO as usize][..padding_len]);
         }
         Ok(())
     }
