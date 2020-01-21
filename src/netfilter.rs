@@ -527,7 +527,7 @@ impl Nl for QueuePacket {
                     result.hook = Nl::deserialize(b)?;
                 },
                 NfQueueAttr::VerdictHdr => (), // We set the verdict, kernel doesn't send it
-                NfQueueAttr::Mark => result.mark = attr.get_payload_as()?,
+                NfQueueAttr::Mark => result.mark = u32::from_be(attr.get_payload_as()?),
                 // Seems not to be always present. Should be Option?
                 NfQueueAttr::Timestamp => result.timestamp = attr.get_payload_as::<Timestamp>()?.into(),
                 NfQueueAttr::IfindexIndev => {
@@ -614,7 +614,7 @@ impl Nl for QueueVerdict {
             pkt_id: self.pkt_id,
         })?.serialize(m)?;
         if let Some(mark) = self.mark {
-            Nlattr::new(None, NfQueueAttr::Mark, mark)?.serialize(m)?;
+            Nlattr::new(None, NfQueueAttr::Mark, mark.to_be())?.serialize(m)?;
         }
         if let Some(payload) = &self.payload {
             Nlattr::new(None, NfQueueAttr::Payload, &payload[..])?.serialize(m)?;
